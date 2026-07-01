@@ -1,0 +1,18 @@
+{
+  "name": "@westsideunion/mcp-doctor",
+  "version": "0.1.0",
+  "description": "Diagnose MCP configuration problems for OpenClaw, Hermes Agent, Claude Code, Codex, and Cursor-style clients.",
+  "type": "module",
+  "bin": {
+    "mcp-doctor": "bin/mcp-doctor.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check bin/mcp-doctor.mjs && node --check src/doctor.mjs && node --check test/doctor.test.mjs"
+  },
+  "keywords": ["mcp", "model-context-protocol", "opencode", "openclaw", "claude-code", "codex", "cursor"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}
