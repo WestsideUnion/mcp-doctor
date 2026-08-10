@@ -52,3 +52,57 @@ test('formats human-readable report', () => {
   assert.match(text, /MCP Doctor:/);
   assert.match(text, /Servers: 1/);
 });
+
+test('detects unpinned package and docker MCP server references', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mcp-doctor-'));
+  const path = join(dir, 'mcp.json');
+  writeFileSync(path, JSON.stringify({
+    mcpServers: {
+      npxServer: { command: 'npx', args: ['-y', '@scope/mcp-server'] },
+      uvxServer: { command: 'uvx', args: ['mcp-server'] },
+      dockerServer: { command: 'docker', args: ['run', '--rm', 'example/mcp-server'] },
+      pipServer: { command: 'python3', args: ['-m', 'pip', 'install', 'mcp-server'] }
+    }
+  }));
+  const report = diagnoseFile(path, { env: process.env, pathEnv: process.env.PATH });
+  const codes = report.findings.map((finding) => finding.code);
+  assert.ok(codes.includes('unpinned-npx-server'));
+  assert.ok(codes.includes('unpinned-uvx-server'));
+  assert.ok(codes.includes('unpinned-docker-image'));
+  assert.ok(codes.includes('unpinned-pip-server'));
+  assert.ok(report.findings.find((finding) => finding.code === 'unpinned-npx-server').category);
+});
+
+test('detects hidden and encoded metadata payloads', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mcp-doctor-'));
+  const path = join(dir, 'mcp.json');
+  writeFileSync(path, JSON.stringify({
+    mcpServers: {
+      'safe\u200bname': {
+        command: process.execPath,
+        description: '<!-- hidden instruction -->',
+        tools: [{ name: 't\u043Eol', description: 'data:text/plain;base64,SGVsbG8=' }]
+      }
+    }
+  }));
+  const report = diagnoseFile(path, { env: process.env, pathEnv: process.env.PATH });
+  const codes = report.findings.map((finding) => finding.code);
+  assert.ok(codes.includes('zero-width-metadata'));
+  assert.ok(codes.includes('confusable-server-name'));
+  assert.ok(codes.includes('hidden-metadata-instruction'));
+  assert.ok(codes.includes('encoded-metadata-payload'));
+});
+
+test('reports inspection completeness and skipped server shapes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mcp-doctor-'));
+  const path = join(dir, 'mcp.json');
+  writeFileSync(path, JSON.stringify({ mcpServers: { ok: { command: process.execPath }, bad: 'not an object' } }));
+  const report = diagnoseFile(path, { env: process.env, pathEnv: process.env.PATH });
+  assert.equal(report.inspection.configRead, true);
+  assert.equal(report.inspection.jsonParsed, true);
+  assert.equal(report.inspection.serversFound, 2);
+  assert.equal(report.inspection.serversInspected, 1);
+  assert.equal(report.inspection.serversSkipped, 1);
+  assert.ok(report.findings.some((finding) => finding.code === 'server-config-not-object'));
+  assert.match(formatTextReport(report), /Inspection: parsed config, inspected 1\/2 servers, skipped 1 invalid server shape/);
+});

@@ -4,6 +4,10 @@ A serious, local-first CLI for diagnosing broken MCP configs before you blame th
 
 Designed for OpenClaw, Hermes Agent, Claude Code, Codex, Cursor-style configs, and other stdio MCP clients.
 
+## Credit
+
+The core idea and system structure were created by Jacky Ho (GitHub: [@nfscars001](https://github.com/nfscars001)).
+
 ## What it checks
 
 - JSON validity and strict JSON mistakes
@@ -15,9 +19,13 @@ Designed for OpenClaw, Hermes Agent, Claude Code, Codex, Cursor-style configs, a
 - stdio pollution hints that can break MCP handshakes
 - Node/Python script path risks
 - `npx` prompt/startup timeout risk
+- unpinned `npx`, `uvx`, `pip install`, and Docker server references
 - package install during startup
+- hidden/encoded metadata payloads, zero-width characters, and confusable server/tool names
 - too many servers or too many tools
 - exact fix suggestions for each finding
+
+JSON output also includes optional structured finding fields such as `category`, `confidence`, `location`, and `evidence`, plus an `inspection` summary showing what was parsed, inspected, or skipped.
 
 ## Install / run locally
 
